@@ -1,0 +1,25 @@
+// this shows the percentage change for retailer data from one point to another 
+// find the retailer and exchange rate backup dates you want to use, and plug them into the query 
+
+select *, b.sales/a.sales - 1 as percent_change from 
+(select distinct r.retailername, r.backup_time, sum(r.netsales / e.rate) as sales 
+from "PRNG"."BACKUP"."PRNGRETAILERDATA" r
+join "PRNG"."BACKUP"."EXCHANGERATE" e
+on year(r.year) = e.year 
+and r.currencycode = e.code 
+where year(r.year) = '2020' 
+and r.backup_time = '2020-08-31 12:09:20.000'
+and e.backup_time = '2020-11-19 11:57:36.000'
+group by r.retailername, r.backup_time ) a 
+join 
+(select distinct r.retailername, r.backup_time, sum(r.netsales / e.rate) as sales 
+from "PRNG"."BACKUP"."PRNGRETAILERDATA" r
+join "PRNG"."PUBLIC"."EXCHANGERATE" e
+on year(r.year) = e.year 
+and r.currencycode = e.code 
+where year(r.year) = '2020' 
+and r.backup_time = '2021-03-22 09:00:50.000'
+group by r.retailername, r.backup_time ) b 
+on a.retailername = b.retailername 
+where a.sales - b.sales <> 0 
+order by b.sales desc 
