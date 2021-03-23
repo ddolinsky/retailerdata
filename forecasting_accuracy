@@ -1,0 +1,121 @@
+// use this to compare old vs new data and get forecasting accuracy 
+
+//Use prng retailerdata for fiscal year to get the last updated data point
+
+select retailername
+        ,year
+        , round(fcast_var,1)
+        , sales_act 
+        , sales_fcast
+        , count(*)
+from 
+(select a.year
+        , a.retailername
+        , a.sales_act
+        , b.sales_fcast
+        , ((a.sales_act / b.sales_fcast) -1)*100  as fcast_var
+from (select year
+        , retailername
+        , netsales as sales_act
+from (select year
+        , retailername
+        , netsales 
+from (select r.backup_time
+        , year(r.year) as year
+        , r.retailername
+        , sum(r.netsales / e.rate) as netsales
+from "PRNG"."BACKUP"."PRNGRETAILERDATA" r 
+join "PRNG"."BACKUP"."EXCHANGERATE" e 
+on r.currencycode = e.code 
+      and year(r.year) = e.year
+where r.backup_time = '2020-05-27 06:18:56.000'
+      and e.backup_time = '2020-04-02 00:00:00.000'
+      and year(r.year) = '2019'
+group by 1, 2, 3  
+) 
+group by 1, 2, 3
+     )) a 
+ 
+join 
+(select year
+        , retailername
+        , avg(netsales) as sales_fcast
+from (select year
+        , retailername
+        , netsales
+from (select r.backup_time
+        , year(r.year) as year
+        ,r.retailername
+        , sum(r.netsales / e.rate) as netsales
+from "PRNG"."BACKUP"."PRNGRETAILERDATA" r 
+join "PRNG"."BACKUP"."EXCHANGERATE" e 
+on r.currencycode = e.code 
+      and year(r.year) = e.year
+where r.backup_time = '2019-01-31 00:00:00.000'
+      and e.backup_time = '2019-01-10 00:00:00.000'
+      and year(r.year) = '2019' 
+group by 1, 2, 3
+     ) 
+group by 1, 2, 3
+     ) 
+group by 1, 2
+) b 
+ on a.year=b.year and a.retailername=b.retailername 
+)
+//Add in tier 1 and tier2 retailers in here
+where retailername in ('Alibaba Group' 
+,'Walmart' 
+,'Amazon' 
+,'JD.com' 
+,'Pinduoduo' 
+,'Costco' 
+,'Seven & I Holdings' 
+,'Schwarz Group' 
+,'Kroger' 
+,'Walgreens Boots Alliance' 
+,'Aldi' 
+,'Carrefour' 
+,'CVS Health' 
+,'Tesco' 
+,'AEON' 
+,'eBay' 
+,'Target' 
+,'Ahold Delhaize' 
+,'Rewe Group' 
+,'Edeka' 
+,'Casino' 
+,'Albertsons' 
+,'Leclerc' 
+,'Auchan' 
+,'Metro' 
+,'Woolworths (AUS)' 
+,'Sainsbury\'s' 
+,'ITM (Intermarché)' 
+,'Loblaw' 
+,'Rakuten Group' 
+,'Dollar General' 
+,'Mercadona' 
+,'AS Watson' 
+,'Ceconomy' 
+,'Dollar Tree' 
+,'Sobeys' 
+,'Jerónimo Martins' 
+,'Système U' 
+,'Wesfarmers' 
+,'ICA Gruppen' 
+,'Coop Italia' 
+,'SPAR International' 
+,'Cencosud' 
+,'Oxxo' 
+,'Dairy Farm International' 
+,'MercadoLibre' 
+,'Salling Group' 
+,'Esselunga' 
+,'Sonae' 
+,'Dia' 
+,'Asos' 
+,'Adidas' 
+)
+group by fcast_var, retailername, 
+      year, sales_act, sales_fcast
+order by retailername asc, year asc 
